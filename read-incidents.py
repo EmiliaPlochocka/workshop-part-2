@@ -5,8 +5,6 @@ from functions import swedishNumberStringsToFloat
 # open network_incidents.csv, read as a list of dictionary items to variable 'networkIncidents'
 with open('network_incidents.csv', encoding='utf-8') as f:
     networkIncidents = list(csv.DictReader(f))
-
-
 conversion = [{
     'affectedUsers': swedishNumberStringsToFloat(number['affected_users']),
     'costSek': swedishNumberStringsToFloat(number['cost_sek']),
@@ -14,13 +12,39 @@ conversion = [{
 } for number in networkIncidents]
 
 
-#___LIST SITE AND PERIOD OF ANALYSIS___
-#for site in networkIncidents:
-#    print(site['site'], site['week_number'])
+#___SITES AND PERIOD OF ANALYSIS___
+# create empty dictionary to store analysis period per site
+analysisPeriod = {}
+# loop though each line from csv file
+for incident in networkIncidents:
+    # get site name from csv file
+    site = incident['site']
+    # get week number and convert to int
+    try:
+        week = int(incident['week_number'])
+    # if not possible (ex. empty row), skip
+    except:
+        continue
+    # if given site name is not in dictionary, add
+    if site not in analysisPeriod:
+        analysisPeriod[site] = {'min': week, 'max': week}
+    # if site name is present in dictionary, check if week number
+    # happens to be lesser or higher than current 'week value'
+    else:
+        if week < analysisPeriod[site]['min']:
+            analysisPeriod[site]['min'] = week
+        if week > analysisPeriod[site]['max']:
+            analysisPeriod[site]['max'] = week
+
+# after looping through data and filling the dictionary, print output
+print("Analysis periods per site:")
+for site, weeks in analysisPeriod.items():
+    print(f"- {site}: {weeks['min']}-{weeks['max']}")
+
 
 #___LIST NO. INCIDENTS FER SEVERITY SCORE___
 # create empty counter
-countersSeverity = {}
+#countersSeverity = {}
 # 
 # for severityTypes in networkIncidents['severity']:
 #    severity = 
@@ -33,14 +57,14 @@ countersSeverity = {}
 impactfulIncidents = [site for site in conversion
                      if (site['affectedUsers']) > 100]
 # include site, device hostname, description and number of affected users for every site
-namesImpInc = [{
-    site[''] + ' '
-    + site['device_hostname'] + ' '
-    + site['description']
-} for site in impactfulIncidents]
+#namesImpInc = [{
+#    site[''] + ' '
+#    + site['device_hostname'] + ' '
+#    + site['description']
+#} for site in impactfulIncidents]
 
 #+ ' ' + site'affectedUsers'
-print (namesImpInc)
+#print (namesImpInc)
 
 
 #___MOST EXPENSIVE INCIDENTS___
@@ -51,9 +75,9 @@ expensiveIncidents = [number for number in conversion
 
 #___TOTAL COST___
 # create dictionary containing integer costSekInt for each site
-costSekInt = (int(site['cost_sek']) for number in networkIncidents)
+#costSekInt = (int(site['cost_sek']) for number in networkIncidents)
 # 
-incidentSum = (sum(costSekInt) for number in networkIncidents)
+#incidentSum = (sum(costSekInt) for number in networkIncidents)
 # for future reference:
 # for person in salaries:
 # print(person['Förnamn'], person['Efternamn'], person['Månadslön'])
