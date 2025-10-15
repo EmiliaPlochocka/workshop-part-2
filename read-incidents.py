@@ -1,20 +1,16 @@
 # import library responsible for writing/reading csv files in Python
 import csv
 # import function from functions.py
-from functions import swedishNumberStringsToFloat
+from functions import safe_int
 # open network_incidents.csv, read as a list of dictionary items to variable 'networkIncidents'
 with open('network_incidents.csv', encoding='utf-8') as f:
     networkIncidents = list(csv.DictReader(f))
-conversion = [{
-    'affectedUsers': swedishNumberStringsToFloat(number['affected_users']),
-    'costSek': swedishNumberStringsToFloat(number['cost_sek']),
-    'impactScore': swedishNumberStringsToFloat(number['impact_score'])
-} for number in networkIncidents]
 
 
 #___SITES AND PERIOD OF ANALYSIS___
 # create empty dictionary to store analysis period per site
 analysisPeriod = {}
+
 # loop though each line from csv file
 for incident in networkIncidents:
     # get site name from csv file
@@ -54,31 +50,38 @@ for incident in networkIncidents:
     # if severity level present, add 1 to counter
     counterSeverity[severity] +=1
 
-# displey results with capitalization
+# display results with capitalization
 print("\n Number of incident per severity level:")
 for severity, count in counterSeverity.items():
     print(f"- {severity.capitalize()}:{count}")
 
-#___LIST INCIDENTS AFFECTING >100 USERS___
-# using list comprehension to filter incidents that affected more than 100 users
-impactfulIncidents = [site for site in conversion
-                     if (site['affectedUsers']) > 100]
-# include site, device hostname, description and number of affected users for every site
-#namesImpInc = [{
-#    site[''] + ' '
-#    + site['device_hostname'] + ' '
-#    + site['description']
-#} for site in impactfulIncidents]
 
-#+ ' ' + site'affectedUsers'
-#print (namesImpInc)
-
+#___INCIDENTS AFFECTING >100 USERS___
+# create list comprehension to filter out incidents that affected fewer than 100 users
+impactfulIncidents = [
+    incident for incident in networkIncidents
+    # use function safe_int to ignore empty variables
+    if safe_int(incident['affected_users']) > 100
+]
+# create a list with dictionaries containing basic info about incidents
+# and containing safe_int to ignore empty variables
+incidentSummaries = [
+    {
+        'site': inc['site'],
+        'device': inc['device_hostname'],
+        'description': inc['description'],
+        'affectedUsers': safe_int(inc['affected_users'])
+    } for inc in impactfulIncidents
+]
+print("\nIncidents affecting more than 100 users:")
+for inc in incidentSummaries:
+    print(f"- {inc['site']} | {inc['device']} | {inc['description']} ({inc['affectedUsers']} users)")
 
 #___MOST EXPENSIVE INCIDENTS___
 # using list comprehension to filter most expensive incidents
 # !!!add conditions
-expensiveIncidents = [number for number in conversion
-                      if (number['costSek'])]
+#expensiveIncidents = [number for number in conversion
+#                      if (number['costSek'])]
 
 #___TOTAL COST___
 # create dictionary containing integer costSekInt for each site
