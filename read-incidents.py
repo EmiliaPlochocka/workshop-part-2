@@ -42,15 +42,22 @@ for site, weeks in analysisPeriod.items():
     print(f"- {site}: {weeks['min']}-{weeks['max']}")
 
 
-#___LIST NO. INCIDENTS FER SEVERITY SCORE___
+#___COUNT OF INCIDENTS PER SEVERITY SCORE___
 # create empty counter
-#countersSeverity = {}
-# 
-# for severityTypes in networkIncidents['severity']:
-#    severity = 
-#    if severity not in countersSeverity:
-#        countersSeverity[severity] = 0
-#    countersSeverity[severity] +=1
+counterSeverity = {}
+for incident in networkIncidents:
+    # convert upper to lower case
+    severity = incident['severity'].strip().lower()
+    # if a severity level not present in dictionary, add with starting value of 0
+    if severity not in counterSeverity:
+        counterSeverity[severity] = 0
+    # if severity level present, add 1 to counter
+    counterSeverity[severity] +=1
+
+# displey results with capitalization
+print("\n Number of incident per severity level:")
+for severity, count in counterSeverity.items():
+    print(f"- {severity.capitalize()}:{count}")
 
 #___LIST INCIDENTS AFFECTING >100 USERS___
 # using list comprehension to filter incidents that affected more than 100 users
