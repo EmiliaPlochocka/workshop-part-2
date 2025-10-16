@@ -74,7 +74,7 @@ incidentSummaries = [
         'affectedUsers': safe_int(inc['affected_users'])
     } for inc in impactfulIncidents
 ]
-print("\nIncidents affecting more than 100 users:")
+print("\n Incidents affecting more than 100 users:")
 for inc in incidentSummaries:
     print(f"- {inc['site']} | {inc['device']} | {inc['description']} ({inc['affectedUsers']} users)")
 
@@ -96,13 +96,94 @@ for inc in topExpensive:
 
 
 #___TOTAL COST___
+# create empty dictionary
 totalCost = 0.0
+# loop through data and collect cost_sek in float format to totalCost
 for incident in networkIncidents:
     try:
         cost = swedishNumberStringsToFloat(incident['cost_sek'])
         totalCost += cost
-    except KeyError:
+    except:
         continue
 # .2f - display up to two decimal spaces
 # , - add comma as 000s separator
 print(f"\n Total incident cost: {totalCost:,.2f} SEK")
+
+#___AVERAGE RESOLUTION TIME PER SEVERITY LEVEL___
+resolutionTime = {}
+for incident in networkIncidents:
+    severity = incident['severity']
+    try:
+        minutes = float(incident['resolution_minutes'])
+    except:
+        continue
+    if severity not in resolutionTime:
+        resolutionTime[severity] = []
+    resolutionTime[severity].append(minutes)
+
+print("\n Average resolution time per severity:")
+for severity, times in resolutionTime.items():
+    avgTime = round(sum(times) / len(times), 1) if times else 0
+    print(f" {severity}: {avgTime} minutes")
+
+#___OVERVIEV PER SITE___
+siteSummary = {}
+for incident in networkIncidents:
+    site = incident['site'].strip()
+    cost = swedishNumberStringsToFloat(incident['cost_sek'])
+    resolution = 0
+    try:
+        resolution = int(incident['resolution_minutes'])
+    except:
+        resolution = 0
+    if site not in siteSummary:
+        siteSummary[site] = {
+            'incidents': 0,
+            'totalCost': 0,
+            'totalResolution': 0
+        }
+siteSummary[site]['incidents'] += 1
+siteSummary[site]['totalCost'] += cost
+siteSummary[site]['totalResolution'] += resolution
+
+print("\n Overview per site:")
+for site, data in siteSummary.items():
+    avgResolution = data['totalResolution'] / data['incidents'] if data['incidents'] > 0 else 0
+    print(f"{site}: {data['incidents']} incidents, "
+    f"totalCost {data['totalCost']:.2f} SEK, "
+    f"averageResolution {avgResolution:.1f} min")
+# fix values
+# add more comments w/instructions
+
+#___AVERAGE IMPACT SCORE PER CATEGORY___
+categoryImpact = {}
+for incident in networkIncidents:
+    category = incident['category'].strip()
+    impact = swedishNumberStringsToFloat(incident['impact_score'])
+    if category not in categoryImpact:
+        categoryImpact[category] = {
+            'totalImpact': 0,
+            'count': 0
+        }
+    categoryImpact[category]['totalImpact'] += impact
+    categoryImpact[category]['count'] += 1
+print("\n Average impact score per category:")
+for category, data in categoryImpact.items():
+    avgImpact = data['totalImpact'] / data['count'] if data['count'] > 0 else 0
+    print(f" {category}: {avgImpact:.2f}")
+
+
+#___WRITE SUMMARY IN CSV___
+with open('network_incidents_overview.csv', 'w', encoding='utf-8') as f:
+    fieldnames = ['site', 'incidents', 'total_cost', 'avg_resolution_minutes']
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+
+    writer.writeheader()
+    for site, data in siteSummary.items():
+        avgResolution = data['totalResolution'] / data['incidents'] if data['incidents'] > 0 else 0
+        writer.writerow({
+            'site': site,
+            'incidents': data['incidents'],
+            'total_cost': round(data['totalCost'], 2),
+            'avg_resolution_minutes': round(avgResolution, 1)
+        })

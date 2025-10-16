@@ -1,0 +1,12 @@
+site,incidents,total_cost,avg_resolution_minutes
+
+Huvudkontor,0,0,0
+
+Lager,0,0,0
+
+Datacenter,1,8456.25,90.0
+
+Kontor Malmö,0,0,0
+
+Säkerhetskopia,0,0,0
+
