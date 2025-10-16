@@ -1,7 +1,8 @@
 # import library responsible for writing/reading csv files in Python
 import csv
-# import function from functions.py
+# import functions from functions.py
 from functions import safe_int
+from functions import swedishNumberStringsToFloat
 # open network_incidents.csv, read as a list of dictionary items to variable 'networkIncidents'
 with open('network_incidents.csv', encoding='utf-8') as f:
     networkIncidents = list(csv.DictReader(f))
@@ -77,19 +78,31 @@ print("\nIncidents affecting more than 100 users:")
 for inc in incidentSummaries:
     print(f"- {inc['site']} | {inc['device']} | {inc['description']} ({inc['affectedUsers']} users)")
 
+
 #___MOST EXPENSIVE INCIDENTS___
-# using list comprehension to filter most expensive incidents
-# !!!add conditions
-#expensiveIncidents = [number for number in conversion
-#                      if (number['costSek'])]
+# create a list where the value of cost is converted to float
+for incident in networkIncidents:
+    incident['costFloat'] = swedishNumberStringsToFloat(incident['cost_sek'])
+
+# sort through the list as the value of cost is falling
+# can use lambda or def function
+sortedByCost = sorted(networkIncidents, key=lambda x: x['costFloat'], reverse=True)
+# choose 5 most expensive incidents
+topExpensive = sortedByCost[:5]
+
+print("\n 5 most expensive incidents:")
+for inc in topExpensive:
+    print(f"- {inc['site']} | {inc['device_hostname']} | {inc['description']} | Cost: {inc['cost_sek']}")
+
 
 #___TOTAL COST___
-# create dictionary containing integer costSekInt for each site
-#costSekInt = (int(site['cost_sek']) for number in networkIncidents)
-# 
-#incidentSum = (sum(costSekInt) for number in networkIncidents)
-# for future reference:
-# for person in salaries:
-# print(person['Förnamn'], person['Efternamn'], person['Månadslön'])
-# salarySum += int(person['Månadslön'])
-# avgSalary = round(salarySum / len(salaries))
+totalCost = 0.0
+for incident in networkIncidents:
+    try:
+        cost = swedishNumberStringsToFloat(incident['cost_sek'])
+        totalCost += cost
+    except KeyError:
+        continue
+# .2f - display up to two decimal spaces
+# , - add comma as 000s separator
+print(f"\n Total incident cost: {totalCost:,.2f} SEK")
