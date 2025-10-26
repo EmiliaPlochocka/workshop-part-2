@@ -1,8 +1,10 @@
 # import library responsible for writing/reading csv files in Python
 import csv
+
 # import functions from functions.py
 from functions import safe_int
 from functions import swedishNumberStringsToFloat
+
 # open network_incidents.csv, read as a list of dictionary items to variable 'networkIncidents'
 with open('network_incidents.csv', encoding='utf-8') as f:
     networkIncidents = list(csv.DictReader(f))
@@ -12,38 +14,38 @@ with open('network_incidents.csv', encoding='utf-8') as f:
 # create empty dictionary to store analysis period per site
 analysisPeriod = {}
 
-# loop though each line from csv file
+# loop though each incident entry from CSV file
 for incident in networkIncidents:
-    # get site name from csv file
+    # get site name from CSV file
     site = incident['site']
-    # get week number and convert to int
+    # get week number and convert to integer
     try:
         week = int(incident['week_number'])
-    # if not possible (ex. empty row), skip
+    # if conversion fails (ex. empty data), skip
     except:
         continue
-    # if given site name is not in dictionary, add
+    # if given site name is not in dictionary yet, add
     if site not in analysisPeriod:
         analysisPeriod[site] = {'min': week, 'max': week}
-    # if site name is present in dictionary, check if week number
-    # happens to be lesser or higher than current 'week value'
+    # if site name is present in dictionary, compare and update week range
     else:
         if week < analysisPeriod[site]['min']:
             analysisPeriod[site]['min'] = week
         if week > analysisPeriod[site]['max']:
             analysisPeriod[site]['max'] = week
 
-# after looping through data and filling the dictionary, print output
+# after looping through incidents, display week ranges
 print("Analysis periods per site:")
 for site, weeks in analysisPeriod.items():
     print(f"- {site}: {weeks['min']}-{weeks['max']}")
 
 
-#___COUNT OF INCIDENTS PER SEVERITY SCORE___
+#___COUNT OF INCIDENTS PER SEVERITY LEVEL___
 # create empty counter
 counterSeverity = {}
+
 for incident in networkIncidents:
-    # convert upper to lower case
+    # normalize text to lowercase
     severity = incident['severity'].strip().lower()
     # if a severity level not present in dictionary, add with starting value of 0
     if severity not in counterSeverity:
@@ -58,12 +60,13 @@ for severity, count in counterSeverity.items():
 
 
 #___INCIDENTS AFFECTING >100 USERS___
-# create list comprehension to filter out incidents that affected fewer than 100 users
+# list comprehension to filter out incidents that affected fewer than 100 users
 impactfulIncidents = [
     incident for incident in networkIncidents
     # use function safe_int to ignore empty variables
     if safe_int(incident['affected_users']) > 100
 ]
+
 # create a list with dictionaries containing basic info about incidents
 # and containing safe_int to ignore empty variables
 incidentSummaries = [
@@ -74,17 +77,18 @@ incidentSummaries = [
         'affectedUsers': safe_int(inc['affected_users'])
     } for inc in impactfulIncidents
 ]
+
 print("\n Incidents affecting more than 100 users:")
 for inc in incidentSummaries:
     print(f"- {inc['site']} | {inc['device']} | {inc['description']} ({inc['affectedUsers']} users)")
 
 
 #___MOST EXPENSIVE INCIDENTS___
-# create a list where the value of cost is converted to float
+# create a field where the value of cost is converted to float
 for incident in networkIncidents:
     incident['costFloat'] = swedishNumberStringsToFloat(incident['cost_sek'])
 
-# sort through the list as the value of cost is falling
+# sort descending by costFloat
 # can use lambda or def function
 sortedByCost = sorted(networkIncidents, key=lambda x: x['costFloat'], reverse=True)
 # choose 5 most expensive incidents
@@ -96,20 +100,22 @@ for inc in topExpensive:
 
 
 #___TOTAL COST___
-# create empty dictionary
 totalCost = 0.0
-# loop through data and collect cost_sek in float format to totalCost
+# loop through data and add up cost_sek in float format to totalCost
 for incident in networkIncidents:
     try:
         cost = swedishNumberStringsToFloat(incident['cost_sek'])
         totalCost += cost
     except:
         continue
+
 # .2f - display up to two decimal spaces
 # , - add comma as 000s separator
 print(f"\n Total incident cost: {totalCost:,.2f} SEK")
 
+
 #___AVERAGE RESOLUTION TIME PER SEVERITY LEVEL___
+# create dictionary where key = severity, value = list of resolution times
 resolutionTime = {}
 for incident in networkIncidents:
     severity = incident['severity']
@@ -126,7 +132,9 @@ for severity, times in resolutionTime.items():
     avgTime = round(sum(times) / len(times), 1) if times else 0
     print(f" {severity}: {avgTime} minutes")
 
+
 #___OVERVIEV PER SITE___
+# summarize incidents by location
 siteSummary = {}
 for incident in networkIncidents:
     site = incident['site'].strip()
@@ -136,15 +144,18 @@ for incident in networkIncidents:
         resolution = int(incident['resolution_minutes'])
     except:
         resolution = 0
+
+    # if new site, create entry
     if site not in siteSummary:
         siteSummary[site] = {
             'incidents': 0,
             'totalCost': 0,
             'totalResolution': 0
         }
-siteSummary[site]['incidents'] += 1
-siteSummary[site]['totalCost'] += cost
-siteSummary[site]['totalResolution'] += resolution
+    # update counters
+    siteSummary[site]['incidents'] += 1
+    siteSummary[site]['totalCost'] += cost
+    siteSummary[site]['totalResolution'] += resolution
 
 print("\n Overview per site:")
 for site, data in siteSummary.items():
@@ -152,21 +163,24 @@ for site, data in siteSummary.items():
     print(f"{site}: {data['incidents']} incidents, "
     f"totalCost {data['totalCost']:.2f} SEK, "
     f"averageResolution {avgResolution:.1f} min")
-# fix values
-# add more comments w/instructions
+
 
 #___AVERAGE IMPACT SCORE PER CATEGORY___
 categoryImpact = {}
 for incident in networkIncidents:
     category = incident['category'].strip()
     impact = swedishNumberStringsToFloat(incident['impact_score'])
+    
+    # create entry if category missing
     if category not in categoryImpact:
         categoryImpact[category] = {
             'totalImpact': 0,
             'count': 0
         }
+    # sum impact and count
     categoryImpact[category]['totalImpact'] += impact
     categoryImpact[category]['count'] += 1
+
 print("\n Average impact score per category:")
 for category, data in categoryImpact.items():
     avgImpact = data['totalImpact'] / data['count'] if data['count'] > 0 else 0
@@ -177,8 +191,10 @@ for category, data in categoryImpact.items():
 with open('network_incidents_overview.csv', 'w', encoding='utf-8') as f:
     fieldnames = ['site', 'incidents', 'total_cost', 'avg_resolution_minutes']
     writer = csv.DictWriter(f, fieldnames=fieldnames)
-
+  
+    # write column headers
     writer.writeheader()
+    #write summarized data row by row
     for site, data in siteSummary.items():
         avgResolution = data['totalResolution'] / data['incidents'] if data['incidents'] > 0 else 0
         writer.writerow({
